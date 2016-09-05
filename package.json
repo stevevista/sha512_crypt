@@ -1,0 +1,30 @@
+{
+  "author": {
+    "name": "Z.R",
+    "email": "kencube@hotmail.com"
+  },
+  "bugs": {
+  },
+  "dependencies": {
+    "nan": "^2.1.0"
+  },
+  "description": "Node.js openssl sha512_crypt bindings",
+  "devDependencies": {},
+  "directories": {},
+  "dist": {
+  },
+  "gypfile": true,
+  "keywords": [
+    "crypt",
+    "password",
+    "sha512",
+    "hash"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "name": "sha512_crypt",
+  "scripts": {
+    "install": "node-gyp rebuild"
+  },
+  "version": "1.0.0"
+}
