@@ -7,16 +7,17 @@
 
 using namespace v8;
 
-#define MAX_BUFFER_SIZE 128
+#define MAX_BUFFER_SIZE (64*3)
 
 
-bool initCtx(const EVP_MD* md, EVP_MD_CTX* ctx) {
+static bool initCtx(const EVP_MD* md, EVP_MD_CTX* ctx) {
 	EVP_MD_CTX_init(ctx);
   	if (EVP_DigestInit_ex(ctx, md, nullptr) <= 0) {
     	return false;
   	}
 	return true;
 }
+
 
 struct buffer {
 	buffer() : size(0) {}
@@ -38,16 +39,16 @@ struct buffer {
 	unsigned char d[MAX_BUFFER_SIZE];
 };
 
-void ctxUpdate(EVP_MD_CTX* ctx, const buffer& source) {
+static void ctxUpdate(EVP_MD_CTX* ctx, const buffer& source) {
 	EVP_DigestUpdate(ctx, source.d, source.size);
 }
 
-void ctxDigest(EVP_MD_CTX* ctx, buffer& value) {
+static void ctxDigest(EVP_MD_CTX* ctx, buffer& value) {
 	EVP_DigestFinal_ex(ctx, value.d, &value.size);
   	EVP_MD_CTX_cleanup(ctx);
 }
 
-void ctxDigest(const EVP_MD* md, buffer& target, const buffer& source0, const buffer& source1) {
+static void ctxDigest(const EVP_MD* md, buffer& target, const buffer& source0, const buffer& source1) {
 	EVP_MD_CTX ctx;
 	if (!initCtx(md, &ctx))
 		return;
@@ -56,7 +57,7 @@ void ctxDigest(const EVP_MD* md, buffer& target, const buffer& source0, const bu
 	ctxDigest(&ctx, target);
 }
 
-void ctxDigest(const EVP_MD* md, buffer& target, const buffer& source0, const buffer& source1, const buffer& source2) {
+static void ctxDigest(const EVP_MD* md, buffer& target, const buffer& source0, const buffer& source1, const buffer& source2) {
 	EVP_MD_CTX ctx;
 	if (!initCtx(md, &ctx))
 		return;
@@ -67,7 +68,7 @@ void ctxDigest(const EVP_MD* md, buffer& target, const buffer& source0, const bu
 }
 
 
-void digestMutiple(const EVP_MD* md, buffer& target, const buffer& source, int count) {
+static void digestMutiple(const EVP_MD* md, buffer& target, const buffer& source, int count) {
 	EVP_MD_CTX ctx;
 	if (!initCtx(md, &ctx))
 		return;
@@ -78,7 +79,7 @@ void digestMutiple(const EVP_MD* md, buffer& target, const buffer& source, int c
 }
 
 
-void extend(buffer& target, const buffer& source, unsigned int size_ref) {
+static void extend(buffer& target, const buffer& source, unsigned int size_ref) {
     
 	unsigned int chunk = size_ref/64;
 	unsigned int tail = size_ref % 64;
@@ -158,9 +159,9 @@ unsigned int b64encode(char* output, const buffer& input) {
 	return n;
 }
 
-unsigned int shacrypt(char* output, char* apassword, char* inputsalt, int rounds) {
+unsigned int shacrypt(const char* hashType, char* output, const char* apassword, const char* inputsalt, int rounds) {
 
-	const EVP_MD* md = EVP_get_digestbyname("sha512");
+	const EVP_MD* md = EVP_get_digestbyname(hashType);
 	if (md == nullptr)
     	return 0;
 
@@ -171,7 +172,7 @@ unsigned int shacrypt(char* output, char* apassword, char* inputsalt, int rounds
 	if (rounds > 1000000)
 		rounds = 1000000;
 
-	char* asalt = inputsalt;
+	const char* asalt = inputsalt;
 	if (!inputsalt || strlen(inputsalt) == 0) {
 		gensalt(randSalt);
 		
@@ -296,7 +297,7 @@ NAN_METHOD(Method) {
 	}
 
 	char digest[128]= "";
-	shacrypt(digest, *key, *salt, rounds);
+	shacrypt("sha512", digest, *key, *salt, rounds);
 	info.GetReturnValue().Set(Nan::New<String>(digest).ToLocalChecked());
 }
 
